@@ -22,13 +22,13 @@ def log(s: str):
 
 
 def swm_to_str(s: data.Shawarma):
-    return f'swm({s.no_cucumber},{s.no_fries},{s.no_molasses},{s.no_sauce})'
+    return f'swm({int(s.no_cucumber)},{int(s.no_fries)},{int(s.no_molasses)},{int(s.no_sauce)})'
 
 def order_to_str(o: data.Order):
     if o is None:
         return 'None'
-    swm = ','.join(swm_to_str(s) for s in o.swm)
-    return f'{swm},cola1:{o.cola1},cola2:{o.cola2},fries:{o.fries},juice:{o.juice},kibbeh:{o.kibbeh}'
+    swm = ','.join(swm_to_str(s) for s in o.swm) or '-'
+    return f'{swm},cola:({o.cola1},{o.cola2}),fries:{o.fries},juice:{o.juice},kibbeh:{o.kibbeh}'
 
 
 def refill():
@@ -134,7 +134,7 @@ def serve(i: int, o: data.Order, fries: list = None, swm: list = None):
         m.drag(*pos.P_JUICE, *target, 0.2)
         operate.spin(0.04)
     for _ in range(o.kibbeh):
-        m.drag(*pos.P_KIBBEH, *target, 0.16)
+        m.drag(*pos.P_KIBBEH, *target, 0.2)
         operate.spin(0.04)
 
     serve_cola_fries(i, o, fries)
@@ -262,7 +262,10 @@ def main_loop():
         command = None
         while not cmd_queue.empty():
             command = cmd_queue.get()
-        if command in ['0', '-', '=']:
+        if command == '9':
+            ctl_work = False
+            log('Stop working')
+        elif command in ['0', '-', '=']:
             idx = ['0', '-', '='].index(command)
             if scr.locate_game():
                 m.locate(*scr.rect[0], scr.ratio)
@@ -282,7 +285,7 @@ def main_loop():
                 log('Start in <{}> mode'.format(['Manual', 'Semi-auto', 'Auto'][idx]))
             else:
                 ctl_work = False
-                log('Fail to locate!')
+                log('Fail to locate! Stop working.')
         if not ctl_work:
             process_cmd.put('q')
             continue
@@ -477,7 +480,7 @@ def main_loop():
                         continue
                     if orders[i]['last_diff'] + 0.6 > orders[i]['last_recog']:
                         continue
-                    swm_add = 0
+                    swm_add = []
                     for s in orders[i]['o'].swm:
                         if not any(s == x[1] for x in old):
                             swm_add.append(s)
@@ -544,18 +547,8 @@ def on_press(key: Union[keyboard.Key, keyboard.KeyCode]):
         ctl_exit = True
         return False
 
-    global ctl_work
-    if isinstance(key, keyboard.KeyCode) and key.char in ['0', '-', '=']:
-        cmd_queue.put(key.char)
-    if key in [keyboard.Key.page_up, keyboard.Key.backspace]:
-        log('Stop working...')
-        ctl_work = False
-    if not ctl_work:
-        return
-
     if isinstance(key, keyboard.KeyCode):
-        command = key.char
-        cmd_queue.put(command)
+        cmd_queue.put(key.char)
 
 
 def on_release(key: Union[keyboard.Key, keyboard.KeyCode]):

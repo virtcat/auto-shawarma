@@ -68,6 +68,10 @@ class Screen:
         self.sct = mss.mss()
         self.rect = None
         self.ratio = pos.PROCESS_RATIO
+        self.pc = False
+        self.t1 = cv2.imread('img/location1.png')
+        self.t2 = cv2.imread('img/location2.png')
+        self.t3 = cv2.imread('img/location3.png')
 
 
     def located(self):
@@ -75,30 +79,100 @@ class Screen:
 
 
     def locate_game(self):
-        template = cv2.imread('img/location.png')
         img = numpy.array(self.sct.grab(self.sct.monitors[0]))[:, :, :3]
-        res = match_one(img, template)
-        if res[0] < 0.6:
+        img_y, img_x = img.shape[:2]
+        ratio_s = 0.5
+        while img.shape[1] * ratio_s > 1960:
+            ratio_s /= 2
+        img_s = cv2.resize(img, (0, 0), fx=ratio_s, fy=ratio_s)
+        test_color = numpy.array([115, 115, 115], dtype=numpy.float32)
+        img_test = numpy.sqrt(numpy.average((img_s - test_color) ** 2, axis=-1))
+        img_test = img_test < 2.0
+        test_y, test_x = img_test.shape[:2]
+        candidates = []
+        stride_x, stride_y = 32, 16
+        for ix in range(0, test_x - stride_x, stride_x):
+            for iy in range(200, test_y - stride_y, stride_y):
+                count = numpy.sum(img_test[iy:(iy + stride_y), ix:(ix + stride_x)])
+                if count > stride_x:
+                    candidates.append((count, (ix, iy)))
+        candidates.sort(key=lambda x: x[0], reverse=True)
+
+        ratio_cand = 1.0
+        score = 0.8
+        match1 = (0, 0)
+        o_stride_x, o_stride_y = int(stride_x / ratio_s), int(stride_y / ratio_s)
+        for c, (ix, iy) in candidates[:4]:
+            ox = int(ix / ratio_s)
+            oy = int(iy / ratio_s)
+            corner = pos.plus((ox, oy), (-o_stride_x, -o_stride_y))
+            corner2 = pos.plus(corner, (2 * o_stride_x, 2 * o_stride_y))
+            if corner[0] <= 0 or corner[1] <= 0 or corner2[0] > img_x or corner2[1] > img_y:
+                continue
+            area = img_slice(img, (corner, (2 * o_stride_x, 2 * o_stride_y)))
+            # Test from 0.5x to 2x
+            for i in range(-4, 5):
+                ratio_test = (2 ** (1/4)) ** i
+                t1_temp = cv2.resize(self.t1, (0, 0), fx=ratio_test, fy=ratio_test)
+                res = match_one(area, t1_temp)
+                if res[0] > score:
+                    score = res[0]
+                    ratio_cand = ratio_test
+                    match1 = pos.plus(corner, res[1])
+        if score < 0.9:
             return False
 
-        left = int(res[1][0] - pos.WINDOW_LOCATE_POINT[0])
-        top = int(res[1][1] - pos.WINDOW_LOCATE_POINT[1])
-        if left < 0 or top < 0:
+        vec = pos.minus(pos.LOCATE_POINT2, pos.LOCATE_POINT1)
+        expect_t2 = pos.plus(match1, (int(vec[0] * ratio_cand), int(vec[1] * ratio_cand)))
+        corner = pos.plus(expect_t2, (-40, -40), (int(-vec[0] * ratio_cand * 0.2), 0))
+        corner2 = pos.plus(expect_t2, (80, 80), (int(vec[0] * ratio_cand * 0.2), 0))
+        corner2 = min(corner2[0], img_x), min(corner2[1], img_y)
+        size = pos.minus(corner2, corner)
+        if size[0] < 40 or size[1] < 40:
             return False
-        self.rect = (left, top), (pos.WINDOW_SIZE[0], pos.WINDOW_SIZE[1])
+        area2 = img_slice(img, (corner, size))
+        t2_temp = cv2.resize(self.t2, (0, 0), fx=ratio_cand, fy=ratio_cand)
+        res = match_one(area2, t2_temp)
+        if res[0] < 0.8:
+            return False
+        match2 = pos.plus(corner, res[1])
+        ratio = (match2[0] - match1[0]) / (pos.LOCATE_POINT2[0] - pos.LOCATE_POINT1[0])
+
+        vec = pos.minus(pos.LOCATE_POINT3, pos.LOCATE_POINT1)
+        expect_t3 = pos.plus(match1, (int(vec[0] * ratio), int(vec[1] * ratio)))
+        corner = pos.plus(expect_t3, (-4, -4))
+        if corner[0] < 0 or corner[1] < 0:
+            return False
+        area3 = img_slice(img, (corner, (40, 40)))
+        t3_temp = cv2.resize(self.t3, (0, 0), fx=ratio, fy=ratio)
+        res = match_one(area3, t3_temp)
+
+        left = int(match1[0] - pos.LOCATE_POINT1[0] * ratio)
+        top = int(match1[1] - pos.LOCATE_POINT1[1] * ratio)
+        width = int(1920 * ratio)
+        if res[0] < 0.8:
+            self.pc = True
+            width = int((1920 + 230) * ratio)
+        height = int(1080 * ratio)
+        if left < 0 or top < 0 or left + width > img_x or top + height > img_y:
+            return False
+        self.rect = (left, top), (width, height)
+        self.ratio = ratio
+        print('>> Location:', self.rect, self.ratio)
         return True
 
 
     def grab_game(self):
         if self.rect is None:
-            self.locate_game()
+            if not self.locate_game():
+                return None
         shot = self.sct.grab({
-            "left": self.rect[0][0], "top": self.rect[0][1],
-            "width": self.rect[1][0], "height": self.rect[1][0] })
+            "left": self.rect[0][0] + 2, "top": self.rect[0][1] + 2,
+            "width": self.rect[1][0] - 4, "height": self.rect[1][0] - 4 })
         img = numpy.array(shot)[:, :, :3]
+        img = numpy.pad(img, [(2, 2), (2, 2), (0, 0)])
         if abs(self.ratio - 1.0) > 0.001:
-            img = cv2.resize(img,
-                    (int(self.rect[1][0] * self.ratio), int(self.rect[1][1] * self.ratio)))
+            img = cv2.resize(img, (0, 0), fx=1 / self.ratio, fy=1 / self.ratio)
         return img
 
 
@@ -106,13 +180,14 @@ class Screen:
         if self.rect is None:
             self.locate_game()
         corner_xy = self.to_screen_xy(*pos.R_CUSTOMER[0])
+        width  = int(pos.R_CUSTOMER[1][0] * self.ratio)
+        height = int(pos.R_CUSTOMER[1][1] * self.ratio)
         shot = self.sct.grab({
             "left": corner_xy[0], "top": corner_xy[1],
-            "width": pos.R_CUSTOMER[1][0], "height": pos.R_CUSTOMER[1][1] })
+            "width": width, "height": height })
         img = numpy.array(shot)[:, :, :3]
         if abs(self.ratio - 1.0) > 0.001:
-            img = cv2.resize(img,
-                    (int(pos.R_CUSTOMER[1][0] * self.ratio), int(pos.R_CUSTOMER[1][1] * self.ratio)))
+            img = cv2.resize(img, (0, 0), fx=1 / self.ratio, fy=1 / self.ratio)
         return img
 
 
@@ -297,19 +372,20 @@ class Recognizer:
         rect = pos.R_READY
         area = img_slice(img, rect)
         swm = []
-        for x in match_all(area, self.t_swm_ready, 0.9):
+        for x in match_all(area, self.t_swm_ready):
             s = data.Shawarma()
             if conf.optional_ingredient:
                 swm_area = img_slice(img, ((rect[0][0] + x[1][0] + 104, rect[0][1] + x[1][1]), (80, 44)))
                 s = self.swm_ingredient(swm_area)
             swm.append((pos.plus(rect[0], x[1]), s))
+        swm.sort(key=lambda x: x[0][1])
         return swm
 
 
     def grill_done(self, img: MatLike):
         rect = pos.R_GRILL
         area = img_slice(img, rect)
-        res = match_all(area, self.t_swm_grill, 0.9)
+        res = match_all(area, self.t_swm_grill)
         return [(x[1][0] + rect[0][0], x[1][1] + rect[0][1]) for x in res]
 
 

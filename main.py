@@ -46,9 +46,10 @@ def make_swm(s: data.Shawarma):
     st = time.time()
     make_time = 0.7
     if s is None or not s.no_molasses:
-        make_time += 0.2
+        make_time += 0.25
         if conf.molasess == 1:
-            m.drag(*pos.P_MOLASSES, *pos.P_MOLASSES_TARGET, 0.2)
+            make_time += 0.25
+            m.drag(*pos.P_MOLASSES, *pos.P_MOLASSES_TARGET, 0.25)
             operate.spin(0.05)
         if conf.molasess == 2:
             m.click(*pos.P_MOLASSES)
@@ -68,7 +69,7 @@ def make_swm(s: data.Shawarma):
         for _ in range(conf.add_click):
             m.click(*pos.P_FRIES)
             operate.spin(0.05)
-    operate.spin(max(0.1, st + make_time - time.time()))
+    operate.spin(max(0.15, st + make_time - time.time()))
     m.drag(*pos.L_BREAD_DRAG, 0.2)
 
 
@@ -192,6 +193,8 @@ def background_process(res: mp.Queue, cmd: mp.Queue):
     r = recognize.Recognizer()
     scr = recognize.Screen()
     scr.locate_game()
+    if scr.pc:
+        pos.relocate_customers()
     t = time.time()
     while True:
         now = time.time()
@@ -254,7 +257,7 @@ def main_loop():
         time.sleep(0.1)
         if ctl_exit:
             process_cmd.put('q')
-            if process is not None:
+            if process is not None and process.is_alive():
                 process.join()
             log('>> Main loop exit')
             break
@@ -268,6 +271,8 @@ def main_loop():
         elif command in ['0', '-', '=']:
             idx = ['0', '-', '='].index(command)
             if scr.locate_game():
+                if scr.pc:
+                    pos.relocate_customers()
                 m.locate(*scr.rect[0], scr.ratio)
                 ctl_auto = idx
                 img = None
@@ -326,14 +331,15 @@ def main_loop():
                 refill()
             elif command in ['s', 'q', 'w', 'e', 'r']:
                 swm = data.Shawarma()
-                if command == 'q':
-                    swm.no_molasses = True
-                elif command == 'w':
-                    swm.no_cucumber = True
-                elif command == 'e':
-                    swm.no_sauce = True
-                elif command == 'r':
-                    swm.no_fries = True
+                if conf.optional_ingredient:
+                    if command == 'q':
+                        swm.no_molasses = True
+                    elif command == 'w':
+                        swm.no_cucumber = True
+                    elif command == 'e':
+                        swm.no_sauce = True
+                    elif command == 'r':
+                        swm.no_fries = True
                 make_swm(swm)
             elif command == 't':
                 prepare_cola()
@@ -345,6 +351,8 @@ def main_loop():
                     time.sleep(0.05)
             elif command in ['1', '2', '3', '4', '5']:
                 i = int(command) - 1
+                if i >= conf.customer_num:
+                    continue
                 if img is None:
                     img = scr.grab_game()
                 order = r.order(img, i)
@@ -413,11 +421,10 @@ def main_loop():
                 if not r.fryer(img):
                     m.long_press(*pos.P_POTATO, 1.2)
                     continue
-            else:
-                if conf.fryer_upgrade < 2 and t_fryer + 8 < now:
-                    m.click(*pos.P_FRYER)
-                    t_fryer = now
-                    continue
+            if conf.fryer_upgrade < 2 and t_fryer + 6 < now and r.amount_fries(img) < 0.2:
+                m.click(*pos.P_FRYER)
+                t_fryer = now
+                continue
 
             # Collect money regularly
             if conf.thief_upgrade < 2 and t_collect + 12 < now:
@@ -480,10 +487,12 @@ def main_loop():
                         continue
                     if orders[i]['last_diff'] + 0.6 > orders[i]['last_recog']:
                         continue
-                    swm_add = []
-                    for s in orders[i]['o'].swm:
-                        if not any(s == x[1] for x in old):
-                            swm_add.append(s)
+                    swm_add = orders[i]['o'].swm
+                    if conf.optional_ingredient:
+                        swm_add = []
+                        for s in orders[i]['o'].swm:
+                            if not any(s == x[1] for x in old):
+                                swm_add.append(s)
                     swm_next.extend(swm_add)
                     log(f'>> Append order {i}, num {len(swm_add)}: ' \
                         + ', '.join(swm_to_str(s) for s in swm_add))
@@ -509,8 +518,6 @@ def main_loop():
                 if orders[i]['last_serve'] + 1.5 < now:
                     if orders[i]['last_diff'] + 1.2 > orders[i]['last_recog']:
                         continue
-                    if i + 1 == conf.customer_num and orders[i]['last_diff'] + 2.4 > orders[i]['last_recog']:
-                        continue
                     o: data.Shawarma = orders[i]['o']
                     if orders[i]['last_serve'] <= orders[i]['create'] and o.cola1 + o.cola2 + o.fries > 0:
                         fries = r.carton_full(img)
@@ -527,7 +534,7 @@ def main_loop():
                         serve(i, o, fries, packed)
                         if o.beggar:
                             time.sleep(0.3)
-                            for _ in range(8):
+                            for _ in range(8 + 8 * (5 - conf.customer_num)):
                                 rect = pos.R_ORDER[i]
                                 m.click(rect[0][0], rect[0][1] + 240)
                                 time.sleep(0.1)

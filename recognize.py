@@ -156,6 +156,8 @@ class Screen:
         height = int(1080 * ratio)
         if left < 0 or top < 0 or left + width > img_x or top + height > img_y:
             return False
+        left += self.sct.monitors[0]["left"]
+        top += self.sct.monitors[0]["top"]
         self.rect = (left, top), (width, height)
         self.ratio = ratio
         print('>> Location:', self.rect, self.ratio)

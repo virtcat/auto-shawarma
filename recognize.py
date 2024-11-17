@@ -101,7 +101,8 @@ class Screen:
         ratio_cand = 1.0
         score = 0.8
         match1 = (0, 0)
-        o_stride_x, o_stride_y = int(stride_x / ratio_s), int(stride_y / ratio_s)
+        o_stride_x = max(40, int(stride_x / ratio_s))
+        o_stride_y = max(40, int(stride_y / ratio_s))
         for c, (ix, iy) in candidates[:4]:
             ox = int(ix / ratio_s)
             oy = int(iy / ratio_s)

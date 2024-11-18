@@ -24,8 +24,6 @@ if conf.customer_num == 3:
 elif conf.customer_num == 4:
     R_ORDER = [((660 + 338 * i, 190), (100, 360)) for i in range(4)]
 R_ORDER_THIEF_REL = (-80, 200), (60, 40)
-R_ORDER_SWM_H_REL = 0
-R_ORDER_SWM_V_REL = 0
 P_ORDER_REL = -36, 300
 
 
@@ -79,7 +77,7 @@ P_COLA1 = 1420, 700
 P_COLA2 = 1510, 700
 
 
-L_BREAD_DRAG = 966, 920, 966, 720
+L_BREAD_DRAG = 966, 900, 966, 720
 L_COLLECT_MONEY = 500, 580, 1600, 580
 
 

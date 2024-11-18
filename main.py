@@ -5,7 +5,7 @@ import queue
 import threading
 import time
 from pynput import keyboard
-from typing import Union
+from typing import List, Optional, Tuple, Union
 
 import config as conf
 import data
@@ -41,61 +41,76 @@ def collect_money():
 
 def make_swm(s: data.Shawarma):
     if conf.bread_machine == 0:
+        m.move_to(*pos.P_BREAD, *pos.P_BREAD, 0.05)
         m.click(*pos.P_BREAD)
-        operate.spin(0.05)
     st = time.time()
     make_time = 0.7
     if s is None or not s.no_molasses:
         make_time += 0.25
         if conf.molasess == 1:
             make_time += 0.25
+            m.move_to(*pos.P_MOLASSES, *pos.P_MOLASSES, 0.05)
             m.drag(*pos.P_MOLASSES, *pos.P_MOLASSES_TARGET, 0.25)
-            operate.spin(0.05)
         if conf.molasess == 2:
+            m.move_to(*pos.P_MOLASSES, *pos.P_MOLASSES, 0.03)
             m.click(*pos.P_MOLASSES)
-            operate.spin(0.05)
-    for _ in range(conf.add_click):
-        m.click(*pos.P_MEAT)
+    m.move_to(*pos.P_MEAT, *pos.P_MEAT, 0.05)
+    m.click(*pos.P_MEAT)
+    for _ in range(1, conf.add_click):
         operate.spin(0.05)
+        m.click(*pos.P_MEAT)
     if s is None or not s.no_cucumber:
-        for _ in range(conf.add_click):
+        m.move_to(*pos.P_MEAT, *pos.P_CUCUMBER, 0.05)
+        m.click(*pos.P_CUCUMBER)
+        for _ in range(1, conf.add_click):
+            operate.spin(0.05)
             m.click(*pos.P_CUCUMBER)
-            operate.spin(0.05)
     if s is None or not s.no_sauce:
-        for _ in range(conf.add_click):
+        m.move_to(*pos.P_CUCUMBER, *pos.P_SAUCE, 0.05)
+        m.click(*pos.P_SAUCE)
+        for _ in range(1, conf.add_click):
+            operate.spin(0.05)
             m.click(*pos.P_SAUCE)
-            operate.spin(0.05)
     if s is None or not s.no_fries:
-        for _ in range(conf.add_click):
-            m.click(*pos.P_FRIES)
+        m.move_to(*pos.P_SAUCE, *pos.P_FRIES, 0.05)
+        m.click(*pos.P_FRIES)
+        for _ in range(1, conf.add_click):
             operate.spin(0.05)
-    operate.spin(max(0.15, st + make_time - time.time()))
+            m.click(*pos.P_FRIES)
+    roll_wait_time = max(0.20, st + make_time - time.time())
+    m.move_to(*pos.P_FRIES, *pos.L_BREAD_DRAG[:2], roll_wait_time)
     m.drag(*pos.L_BREAD_DRAG, 0.2)
 
 
 def prepare_cola():
     if conf.cup_upgrade < 1:
+        m.move_to(*pos.P_CUP, *pos.P_CUP, 0.03)
         m.click(*pos.P_CUP)
         time.sleep(0.03)
         m.click(*pos.P_CUP)
-        time.sleep(0.3)
+        m.move_to(*pos.P_CUP, *pos.P_COLA1_BUTTON, 0.3)
     if conf.cup_upgrade < 2:
         m.click(*pos.P_COLA1_BUTTON)
-        time.sleep(0.03)
+        m.move_to(*pos.P_COLA1_BUTTON, *pos.P_COLA2_BUTTON, 0.03)
         m.click(*pos.P_COLA2_BUTTON)
 
 
 def prepare_fries1(c: int = 3):
     for _ in range(c):
+        m.move_to(*pos.P_CARTON, *pos.P_CARTON, 0.05)
         m.click(*pos.P_CARTON)
-        time.sleep(0.03)
 
 
-def prepare_fries2(i: int = 0):
-    if conf.carton_upgrade == 1:
-        m.drag(*pos.P_CARTONS[i], *pos.P_FRIES, 0.2)
-    elif conf.carton_upgrade == 2:
-        m.click(*pos.P_CARTONS[i])
+def prepare_fries2(empty: Optional[List[Union[int, Tuple[int, int]]]] = None):
+    if empty is None:
+        empty = [0, 1, 2]
+    for c in empty:
+        p = pos.P_CARTONS[c] if isinstance(c, int) else c
+        m.move_to(*p, *p, 0.05)
+        if conf.carton_upgrade == 1:
+            m.drag(*p, *pos.P_FRIES, 0.2)
+        if conf.carton_upgrade == 2:
+            m.click(*p)
 
 
 def serve_target(i: int):
@@ -143,9 +158,9 @@ def serve(i: int, o: data.Order, fries: list = None, swm: list = None):
     serve_swm(i, o, swm)
 
 
-def equal_order(old: data.Order, new: data.Order):
-    if old is None or new is None:
-        return old is None and new is None
+def equal_order(old: Optional[data.Order], new: Optional[data.Order]):
+    old = old or data.Order()
+    new = new or data.Order()
     if old.cola1 != new.cola1 \
             or old.cola2 != new.cola2 \
             or old.fries != new.fries \
@@ -161,7 +176,7 @@ def equal_order(old: data.Order, new: data.Order):
     return True
 
 
-def merge_order(old: data.Order, new: data.Order):
+def merge_order(old: Optional[data.Order], new: Optional[data.Order]):
     if old is None:
         return new
     if new is None:
@@ -267,7 +282,7 @@ def main_loop():
             command = cmd_queue.get()
         if command == '9':
             ctl_work = False
-            log('Stop working')
+            log('Stop mode')
         elif command in ['0', '-', '=']:
             idx = ['0', '-', '='].index(command)
             if scr.locate_game():
@@ -290,7 +305,7 @@ def main_loop():
                 log('Start in <{}> mode'.format(['Manual', 'Semi-auto', 'Auto'][idx]))
             else:
                 ctl_work = False
-                log('Fail to locate! Stop working.')
+                log('Fail to locate!')
         if not ctl_work:
             process_cmd.put('q')
             continue
@@ -300,6 +315,7 @@ def main_loop():
         now = time.time()
 
         # High priority operations
+        # 高优先级操作
         if ctl_auto > 0:
             img = scr.grab_game()
 
@@ -324,6 +340,7 @@ def main_loop():
                         continue
 
         # Response to command if exist
+        # 处理键盘指令
         if command is not None:
             if command == 'd':
                 collect_money()
@@ -346,9 +363,7 @@ def main_loop():
             elif command == 'f':
                 prepare_fries1()
             elif command == 'v':
-                for i in range(3):
-                    prepare_fries2(i)
-                    time.sleep(0.05)
+                prepare_fries2()
             elif command in ['1', '2', '3', '4', '5']:
                 i = int(command) - 1
                 if i >= conf.customer_num:
@@ -360,25 +375,29 @@ def main_loop():
                 swm = r.packed(img)
                 if order is not None:
                     serve(i, order, fries, swm)
+            continue
 
         # Low priority operations
+        # 低优先级操作
         if ctl_auto > 0 and img is not None:
             # Get grilled shawarma to prevent it from burned
+            # 获取烤好的沙威玛以免烤焦
             if conf.grill_upgrade == 1:
                 packed = r.packed(img)
                 grill = r.grill_done(img)
                 if len(packed) < 3 and len(grill) > 0:
                     for g in grill:
-                        m.drag(g[0], g[1] + 20, g[0] - 200, g[1] + 20, 0.2)
+                        m.drag(g[0], g[1] + 20, g[0] - 240, g[1] + 20, 0.2)
                         if conf.package_upgrade == 0:
                             log('Not support!')
                         if conf.package_upgrade == 1:
-                            time.sleep(0.25)
+                            m.move_to(g[0] - 240, g[1] + 20, *pos.P_PACK, 0.25)
                             m.click(*pos.P_PACK)
                         time.sleep(0.05)
                     continue
 
             # Refill ingredients
+            # 补充配料
             if t_refill + 32 < now or r.juice(img) < 2 or r.kibbeh(img) < 3:
                 if t_refill + 10 < now:
                     refill()
@@ -386,6 +405,7 @@ def main_loop():
                     continue
 
             # Prepare drinks
+            # 准备饮料
             if conf.drink_upgrade > 0 and t_cola < now:
                 cola = r.cola(img)
                 if cola[0] == 0 or cola[1] == 0:
@@ -396,27 +416,24 @@ def main_loop():
                     continue
 
             # Prepare fries
+            # 准备薯条
             if conf.carton_upgrade in [1, 2] and t_carton < now:
                 carton_empty = r.carton_empty(img)
                 carton_full = r.carton_full(img)
                 count = len(carton_full) + len(carton_empty)
                 if count == 0:
-                    t_carton = now + 3
+                    t_carton = now + 2.5
                     prepare_fries1(3 - count)
                     continue
                 if len(carton_empty) >= 2:
                     amount_fries = r.amount_fries(img)
                     if amount_fries > 0.2:
-                        t_carton = now + 6 
-                        for c in carton_empty:
-                            if conf.carton_upgrade == 1:
-                                m.drag(c[0], c[1], *pos.P_FRIES, 0.2)
-                            if conf.carton_upgrade == 2:
-                                m.click(c[0], c[1])
-                            time.sleep(0.05)
+                        t_carton = now + 6
+                        prepare_fries2(carton_empty)
                         continue
 
             # Fry potatoes
+            # 炸土豆
             if conf.potato_upgrade == 0:
                 if not r.fryer(img):
                     m.long_press(*pos.P_POTATO, 1.2)
@@ -427,12 +444,14 @@ def main_loop():
                 continue
 
             # Collect money regularly
+            # 定期收钱
             if conf.thief_upgrade < 2 and t_collect + 12 < now:
                 t_collect = now
                 collect_money()
                 continue
 
         # Full automatic operations
+        # 全自动操作
         if ctl_auto == 2 and img is not None and last_img is not None:
             while True:
                 try:
@@ -443,31 +462,37 @@ def main_loop():
                     o = res[i]
                     if t_grab <= orders[i].get('last_diff', 0):
                         continue
+                    if not orders[i]:
+                        if o is not None:
+                            orders[i] = {
+                                'o': o,
+                                'o_new': None,
+                                'o_new_time': 0,
+                                'create': t_grab,
+                                'last_diff': t_grab,
+                                'last_recog': t_grab,
+                                'last_serve': t_grab,
+                                'queue': 0}
+                        continue
                     if o is None:
-                        if orders[i].get('last_diff', 0) + 6 < t_grab:
+                        if orders[i].get('last_diff', 0) + 5.0 < t_grab and equal_order(orders[i]['o'], None):
                             orders[i] = {}
-                    elif orders[i].get('create', 0) == 0:
-                        orders[i] = {
-                            'o': o,
-                            'o_new': None,
-                            'o_new_time': 0,
-                            'create': t_grab,
-                            'last_diff': t_grab,
-                            'last_recog': t_grab,
-                            'last_serve': t_grab,
-                            'queue': 0}
+                            continue
+                        o = data.Order()
+                    if not equal_order(o, orders[i]['o']):
+                        if equal_order(o, orders[i]['o_new']):
+                            if orders[i]['o_new_time'] + 3.0 < t_grab:
+                                orders[i]['o'] = o
+                                orders[i]['o_new'] = None
+                                orders[i]['last_diff'] = orders[i]['o_new_time']
+                        else:
+                            orders[i]['o_new'] = o
+                            orders[i]['o_new_time'] = t_grab
+                        orders[i]['o'] = merge_order(o, orders[i]['o'])
+                        orders[i]['last_diff'] = t_grab
                     else:
-                        if not equal_order(o, orders[i]['o']):
-                            if equal_order(o, orders[i]['o_new']):
-                                if orders[i]['o_new_time'] + 4.0 < t_grab:
-                                    orders[i]['o'] = o
-                                    orders[i]['o_new'] = None
-                            else:
-                                orders[i]['o_new'] = o
-                                orders[i]['o_new_time'] = t_grab
-                            orders[i]['o'] = merge_order(o, orders[i]['o'])
-                            orders[i]['last_diff'] = t_grab
-                        orders[i]['last_recog'] = t_grab
+                        orders[i]['o_new'] = None
+                    orders[i]['last_recog'] = t_grab
 
             sort_list = [(orders[i]['create'], i) for i in range(len(orders)) if orders[i]]
             sort_list.sort()
@@ -483,7 +508,7 @@ def main_loop():
                         if flag:
                             old.append(s)
                 for _, i in sort_list:
-                    if orders[i]['queue'] > 0 and orders[i]['queue'] + 24 > now:
+                    if orders[i]['queue'] > 0 and orders[i]['queue'] + 30 > now:
                         continue
                     if orders[i]['last_diff'] + 0.6 > orders[i]['last_recog']:
                         continue
@@ -491,7 +516,7 @@ def main_loop():
                     if conf.optional_ingredient:
                         swm_add = []
                         for s in orders[i]['o'].swm:
-                            if not any(s == x[1] for x in old):
+                            if s == data.Shawarma() or not any(s == x[1] for x in old):
                                 swm_add.append(s)
                     swm_next.extend(swm_add)
                     log(f'>> Append order {i}, num {len(swm_add)}: ' \
@@ -523,7 +548,6 @@ def main_loop():
                         fries = r.carton_full(img)
                         serve_cola_fries(i, o, fries)
                         orders[i]['o'] = data.Order()
-                        orders[i]['last_diff'] = time.time()
                         orders[i]['last_serve'] = time.time()
                         do_serve = True
                         break
@@ -539,7 +563,6 @@ def main_loop():
                                 m.click(rect[0][0], rect[0][1] + 240)
                                 time.sleep(0.1)
                         orders[i]['o'] = data.Order()
-                        orders[i]['last_diff'] = time.time()
                         orders[i]['last_serve'] = time.time()
                         do_serve = True
                         break

@@ -153,7 +153,7 @@ class Screen:
         width = int(1920 * ratio)
         if res[0] < 0.8:
             self.pc = True
-            width = int((1920 + 230) * ratio)
+            width = int((1920 + 180) * ratio)
         height = int(1080 * ratio)
         if left < 0 or top < 0 or left + width > img_x or top + height > img_y:
             return False
@@ -268,13 +268,12 @@ class Recognizer:
         swm_rect = []
         for res in match_all_not_gray(area, self.t_order_swm, 0.8):
             swm_rect.append((
-                (rect[0][0] + res[1][0] + 24, rect[0][1] + res[1][1]), (80, 44)))
+                    pos.plus(rect[0], res[1], (24, 0)), (80, 44)))
         if conf.optional_ingredient:
             for res in match_all_not_gray(area, self.t_order_swm_h, 0.8):
                 swm_rect.append((
-                    (rect[0][0] + res[1][0] + 56, rect[0][1] + res[1][1] - 14), (80, 44)))
+                    pos.plus(rect[0], res[1], (56, -14)), (80, 44)))
         swm_rect.sort(key=lambda x: x[0][0] + x[0][1])
-        o.swm = []
         for r in swm_rect:
             swm = data.Shawarma()
             if conf.optional_ingredient:
@@ -286,7 +285,7 @@ class Recognizer:
         o.cola1 = len(match_all_not_gray(area, self.t_order_cola1, 0.8))
         o.cola2 = len(match_all_not_gray(area, self.t_order_cola2, 0.8))
         o.juice = len(match_all(area, self.t_order_juice, 0.8))
-        o.kibbeh = len(match_all_not_gray(area, self.t_order_kibbeh, 0.8))
+        o.kibbeh = len(match_all_not_gray(area, self.t_order_kibbeh, 0.75))
 
         if len(o.swm) + o.fries + o.cola1 + o.cola2 + o.juice + o.kibbeh == 0:
             return None

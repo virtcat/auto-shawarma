@@ -3,7 +3,6 @@
 import cv2
 import mss
 import numpy
-import os
 from cv2.typing import MatLike
 from typing import List, Optional, Tuple
 
@@ -155,8 +154,10 @@ class Screen:
             self.pc = True
             width = int((1920 + 180) * ratio)
         height = int(1080 * ratio)
-        if left < 0 or top < 0 or left + width > img_x or top + height > img_y:
+        if left < -2 or top < 2 or left + width > img_x + 2 or top + height > img_y + 2:
             return False
+        left += self.sct.monitors[0]["left"]
+        top += self.sct.monitors[0]["top"]
         self.rect = (left, top), (width, height)
         self.ratio = ratio
         print('>> Location:', self.rect, self.ratio)
@@ -168,10 +169,10 @@ class Screen:
             if not self.locate_game():
                 return None
         shot = self.sct.grab({
-            "left": self.rect[0][0] + 2, "top": self.rect[0][1] + 2,
-            "width": self.rect[1][0] - 4, "height": self.rect[1][0] - 4 })
+            "left": self.rect[0][0] + 4, "top": self.rect[0][1] + 4,
+            "width": self.rect[1][0] - 8, "height": self.rect[1][0] - 8 })
         img = numpy.array(shot)[:, :, :3]
-        img = numpy.pad(img, [(2, 2), (2, 2), (0, 0)])
+        img = numpy.pad(img, [(4, 4), (4, 4), (0, 0)])
         if abs(self.ratio - 1.0) > 0.001:
             img = cv2.resize(img, (0, 0), fx=1 / self.ratio, fy=1 / self.ratio)
         return img
@@ -375,7 +376,7 @@ class Recognizer:
         for x in match_all(area, self.t_swm_ready):
             s = data.Shawarma()
             if conf.optional_ingredient:
-                swm_area = img_slice(img, ((rect[0][0] + x[1][0] + 104, rect[0][1] + x[1][1]), (80, 44)))
+                swm_area = img_slice(img, ((rect[0][0] + x[1][0] + 70, rect[0][1] + x[1][1]), (80, 44)))
                 s = self.swm_ingredient(swm_area)
             swm.append((pos.plus(rect[0], x[1]), s))
         swm.sort(key=lambda x: x[0][1])

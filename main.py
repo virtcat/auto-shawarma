@@ -465,7 +465,7 @@ def main_loop():
                     break
                 for i in range(conf.customer_num):
                     o = res[i]
-                    if t_grab <= orders[i].get('last_diff', 0):
+                    if t_grab <= orders[i].get('last_diff', 0) or t_grab <= orders[i].get('last_serve', 0):
                         continue
                     if not orders[i]:
                         if o is not None:
@@ -493,8 +493,10 @@ def main_loop():
                         else:
                             orders[i]['o_new'] = o
                             orders[i]['o_new_time'] = t_grab
-                        orders[i]['o'] = merge_order(o, orders[i]['o'])
-                        orders[i]['last_diff'] = t_grab
+                        new_order = merge_order(o, orders[i]['o'])
+                        if not equal_order(orders[i]['o'], new_order):
+                            orders[i]['o'] = new_order
+                            orders[i]['last_diff'] = t_grab
                     else:
                         orders[i]['o_new'] = None
                     orders[i]['last_recog'] = t_grab

@@ -41,7 +41,8 @@ def collect_money():
 
 def make_swm(s: data.Shawarma):
     if conf.bread_machine == 0:
-        m.move_to(*pos.P_BREAD, *pos.P_BREAD, 0.05)
+        m.set_pos(*pos.P_BREAD)
+        operate.spin(0.02)
         m.click(*pos.P_BREAD)
     st = time.time()
     make_time = 0.7
@@ -49,37 +50,39 @@ def make_swm(s: data.Shawarma):
         make_time += 0.25
         if conf.molasess == 1:
             make_time += 0.25
-            m.move_to(*pos.P_MOLASSES, *pos.P_MOLASSES, 0.05)
+            m.set_pos(*pos.P_MOLASSES)
+            operate.spin(0.02)
             m.drag(*pos.P_MOLASSES, *pos.P_MOLASSES_TARGET, 0.25)
         if conf.molasess == 2:
             m.move_to(*pos.P_MOLASSES, *pos.P_MOLASSES, 0.03)
             m.click(*pos.P_MOLASSES)
-    m.move_to(*pos.P_MEAT, *pos.P_MEAT, 0.05)
+    m.move_to(*pos.P_MEAT, *pos.P_MEAT, 0.02)
     m.click(*pos.P_MEAT)
     for _ in range(1, conf.add_click):
-        operate.spin(0.05)
+        operate.spin(0.02)
         m.click(*pos.P_MEAT)
     if s is None or not s.no_cucumber:
-        m.move_to(*pos.P_MEAT, *pos.P_CUCUMBER, 0.05)
+        m.move_to(*pos.P_MEAT, *pos.P_CUCUMBER, 0.02)
         m.click(*pos.P_CUCUMBER)
         for _ in range(1, conf.add_click):
-            operate.spin(0.05)
+            operate.spin(0.02)
             m.click(*pos.P_CUCUMBER)
     if s is None or not s.no_sauce:
-        m.move_to(*pos.P_CUCUMBER, *pos.P_SAUCE, 0.05)
+        m.move_to(*pos.P_CUCUMBER, *pos.P_SAUCE, 0.02)
         m.click(*pos.P_SAUCE)
         for _ in range(1, conf.add_click):
-            operate.spin(0.05)
+            operate.spin(0.02)
             m.click(*pos.P_SAUCE)
     if s is None or not s.no_fries:
-        m.move_to(*pos.P_SAUCE, *pos.P_FRIES, 0.05)
+        m.move_to(*pos.P_SAUCE, *pos.P_FRIES, 0.02)
         m.click(*pos.P_FRIES)
         for _ in range(1, conf.add_click):
-            operate.spin(0.05)
+            operate.spin(0.02)
             m.click(*pos.P_FRIES)
     roll_wait_time = max(0.20, st + make_time - time.time())
     m.move_to(*pos.P_FRIES, *pos.L_BREAD_DRAG[:2], roll_wait_time)
     m.drag(*pos.L_BREAD_DRAG, 0.2)
+    operate.spin(0.02)
 
 
 def prepare_cola():
@@ -88,7 +91,7 @@ def prepare_cola():
         m.click(*pos.P_CUP)
         time.sleep(0.03)
         m.click(*pos.P_CUP)
-        m.move_to(*pos.P_CUP, *pos.P_COLA1_BUTTON, 0.3)
+        m.move_to(*pos.P_CUP, *pos.P_COLA1_BUTTON, 0.25)
     if conf.cup_upgrade < 2:
         m.click(*pos.P_COLA1_BUTTON)
         m.move_to(*pos.P_COLA1_BUTTON, *pos.P_COLA2_BUTTON, 0.03)
@@ -96,8 +99,9 @@ def prepare_cola():
 
 
 def prepare_fries1(c: int = 3):
+    m.set_pos(*pos.P_CARTON)
     for _ in range(c):
-        m.move_to(*pos.P_CARTON, *pos.P_CARTON, 0.05)
+        operate.spin(0.02)
         m.click(*pos.P_CARTON)
 
 
@@ -106,7 +110,8 @@ def prepare_fries2(empty: Optional[List[Union[int, Tuple[int, int]]]] = None):
         empty = [0, 1, 2]
     for c in empty:
         p = pos.P_CARTONS[c] if isinstance(c, int) else c
-        m.move_to(*p, *p, 0.05)
+        m.set_pos(*p)
+        operate.spin(0.02)
         if conf.carton_upgrade == 1:
             m.drag(*p, *pos.P_FRIES, 0.2)
         if conf.carton_upgrade == 2:
@@ -122,13 +127,13 @@ def serve_cola_fries(i: int, o: data.Order, fries: list = None):
     if o.fries > 0 and fries is not None:
         for j in range(min(o.fries, len(fries))):
             m.drag(*fries[j], *target, 0.2)
-            operate.spin(0.04)
+            operate.spin(0.02)
     if o.cola1:
         m.drag(*pos.P_COLA1, *target, 0.16)
-        operate.spin(0.04)
+        operate.spin(0.02)
     if o.cola2:
         m.drag(*pos.P_COLA2, *target, 0.16)
-        operate.spin(0.04)
+        operate.spin(0.02)
 
 
 def serve_swm(i: int, o: data.Order, swm: list = None):
@@ -139,7 +144,7 @@ def serve_swm(i: int, o: data.Order, swm: list = None):
                 if swm[j] is not None and s_order == swm[j][1]:
                     m.drag(*swm[j][0], *target, 0.2)
                     swm[j] = None
-                    operate.spin(0.04)
+                    operate.spin(0.02)
                     break
 
 
@@ -147,11 +152,11 @@ def serve(i: int, o: data.Order, fries: list = None, swm: list = None):
     target = serve_target(i)
 
     for _ in range(o.juice):
-        m.drag(*pos.P_JUICE, *target, 0.2)
-        operate.spin(0.04)
+        m.drag(*pos.P_JUICE, *target, 0.18)
+        operate.spin(0.02)
     for _ in range(o.kibbeh):
-        m.drag(*pos.P_KIBBEH, *target, 0.2)
-        operate.spin(0.04)
+        m.drag(*pos.P_KIBBEH, *target, 0.18)
+        operate.spin(0.02)
 
     serve_cola_fries(i, o, fries)
 

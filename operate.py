@@ -40,9 +40,11 @@ class Mouse:
 
     def click(self, x: int, y: int):
         self.c.position = self.to_screen(x, y)
+        spin(0.01)
         self.c.press(mouse.Button.left)
         spin(0.03)
         self.c.release(mouse.Button.left)
+        spin(0.01)
 
 
     def long_press(self, x: int, y: int, t: float):
@@ -65,11 +67,13 @@ class Mouse:
 
     def drag(self, x1: int, y1: int, x2: int, y2: int, t: float = 0.5):
         self.c.position = self.to_screen(x1, y1)
+        spin(0.01)
         self.c.press(mouse.Button.left)
-        spin(0.04)
+        spin(0.02)
         self.move_to(x1, y1, x2, y2, t - 0.12)
         spin(0.08)
         self.c.release(mouse.Button.left)
+        spin(0.01)
 
 
     def set_pos(self, x: int, y: int):

@@ -9,12 +9,11 @@ ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE)
 
 
 def spin(t: float):
-    st = time.time()
+    start_time = time.perf_counter()
     while True:
-        if time.time() - st > t:
+        if time.perf_counter() - start_time > t:
             break
-        for _ in range(10000):
-            pass
+        time.sleep(0)
 
 
 class Mouse:

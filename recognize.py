@@ -120,6 +120,7 @@ class Screen:
                     ratio_cand = ratio_test
                     match1 = pos.plus(corner, res[1])
         if score < 0.9:
+            print('Locate point 1 not detected')
             return False
 
         vec = pos.minus(pos.LOCATE_POINT2, pos.LOCATE_POINT1)
@@ -129,11 +130,13 @@ class Screen:
         corner2 = min(corner2[0], img_x), min(corner2[1], img_y)
         size = pos.minus(corner2, corner)
         if size[0] < 40 or size[1] < 40:
+            print('Locate point 2 area error:', corner, corner2)
             return False
         area2 = img_slice(img, (corner, size))
         t2_temp = cv2.resize(self.t2, (0, 0), fx=ratio_cand, fy=ratio_cand)
         res = match_one(area2, t2_temp)
         if res[0] < 0.8:
+            print('Locate point 2 not detected')
             return False
         match2 = pos.plus(corner, res[1])
         ratio = (match2[0] - match1[0]) / (pos.LOCATE_POINT2[0] - pos.LOCATE_POINT1[0])
@@ -142,6 +145,7 @@ class Screen:
         expect_t3 = pos.plus(match1, (int(vec[0] * ratio), int(vec[1] * ratio)))
         corner = pos.plus(expect_t3, (-4, -4))
         if corner[0] < 0 or corner[1] < 0:
+            print('Locate point 3 area error:', corner)
             return False
         area3 = img_slice(img, (corner, (40, 40)))
         t3_temp = cv2.resize(self.t3, (0, 0), fx=ratio, fy=ratio)
@@ -154,7 +158,8 @@ class Screen:
             self.pc = True
             width = int((1920 + 180) * ratio)
         height = int(1080 * ratio)
-        if left < -2 or top < 2 or left + width > img_x + 2 or top + height > img_y + 2:
+        if left < -8 or top < 8 or left + width > img_x + 8 or top + height > img_y + 8:
+            print('Window rect', (left, top), (width, height), 'exceed the screen',  (img_x, img_y))
             return False
         left += self.sct.monitors[0]["left"]
         top += self.sct.monitors[0]["top"]
@@ -168,11 +173,12 @@ class Screen:
         if self.rect is None:
             if not self.locate_game():
                 return None
+        pad = 10
         shot = self.sct.grab({
-            "left": self.rect[0][0] + 4, "top": self.rect[0][1] + 4,
-            "width": self.rect[1][0] - 8, "height": self.rect[1][0] - 8 })
+            "left": self.rect[0][0] + pad, "top": self.rect[0][1] + pad,
+            "width": self.rect[1][0] - pad * 2, "height": self.rect[1][0] - pad * 2 })
         img = numpy.array(shot)[:, :, :3]
-        img = numpy.pad(img, [(4, 4), (4, 4), (0, 0)])
+        img = numpy.pad(img, [(pad, pad), (pad, pad), (0, 0)])
         if abs(self.ratio - 1.0) > 0.001:
             img = cv2.resize(img, (0, 0), fx=1 / self.ratio, fy=1 / self.ratio)
         return img

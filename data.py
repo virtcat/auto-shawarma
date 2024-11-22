@@ -21,3 +21,6 @@ class Order:
     juice: int = 0
     kibbeh: int = 0
     beggar: bool = False
+
+    def count(self):
+        return len(self.swm) + self.fries + self.cola1 + self.cola2 + self.juice + self.kibbeh

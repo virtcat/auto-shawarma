@@ -126,35 +126,45 @@ def serve_cola_fries(i: int, o: data.Order, fries: list = None):
     target = serve_target(i)
     if o.fries > 0 and fries is not None:
         for j in range(min(o.fries, len(fries))):
+            o.fries -= 1
             m.drag(*fries[j], *target, 0.2)
             operate.spin(0.02)
     if o.cola1:
+        o.cola1 -= 1
         m.drag(*pos.P_COLA1, *target, 0.16)
         operate.spin(0.02)
     if o.cola2:
+        o.cola2 -= 1
         m.drag(*pos.P_COLA2, *target, 0.16)
         operate.spin(0.02)
 
 
 def serve_swm(i: int, o: data.Order, swm: list = None):
     target = serve_target(i)
-    if swm is not None:
-        for s_order in o.swm:
-            for j in range(len(swm)):
-                if swm[j] is not None and s_order == swm[j][1]:
-                    m.drag(*swm[j][0], *target, 0.2)
-                    swm[j] = None
-                    operate.spin(0.02)
-                    break
+    swm = swm or []
+    for j in range(len(o.swm)):
+        order_swm = o.swm[j]
+        for k in range(len(swm)):
+            if swm[k] is None:
+                continue
+            if order_swm == swm[k][1]:
+                m.drag(*swm[k][0], *target, 0.2)
+                o.swm[j] = None
+                swm[k] = None
+                operate.spin(0.02)
+                break
+    o.swm = [x for x in o.swm if x is not None]
 
 
 def serve(i: int, o: data.Order, fries: list = None, swm: list = None):
     target = serve_target(i)
 
     for _ in range(o.juice):
+        o.juice -= 1
         m.drag(*pos.P_JUICE, *target, 0.18)
         operate.spin(0.02)
     for _ in range(o.kibbeh):
+        o.kibbeh -= 1
         m.drag(*pos.P_KIBBEH, *target, 0.18)
         operate.spin(0.02)
 
@@ -480,7 +490,9 @@ def main_loop():
                                 'queue': 0}
                         continue
                     if o is None:
-                        if orders[i].get('last_diff', 0) + 5.0 < t_grab and equal_order(orders[i]['o'], None):
+                        if equal_order(orders[i]['o'], None) \
+                                and orders[i].get('last_diff', 0) + 5.0 < t_grab \
+                                and orders[i].get('last_serve', 0) + 3.0 < t_grab:
                             orders[i] = {}
                             continue
                         o = data.Order()
@@ -499,6 +511,7 @@ def main_loop():
                             orders[i]['last_diff'] = t_grab
                     else:
                         orders[i]['o_new'] = None
+                        orders[i]['o_new_time'] = t_grab
                     orders[i]['last_recog'] = t_grab
 
             sort_list = [(orders[i]['create'], i) for i in range(len(orders)) if orders[i]]
@@ -554,22 +567,20 @@ def main_loop():
                     if orders[i]['last_serve'] <= orders[i]['create'] and o.cola1 + o.cola2 + o.fries > 0:
                         fries = r.carton_full(img)
                         serve_cola_fries(i, o, fries)
-                        orders[i]['o'] = data.Order()
                         orders[i]['last_serve'] = time.time()
                         do_serve = True
                         break
-                    if len(packed) > 0 and orders[i]['queue'] > 0 and orders[i]['queue'] + 4 < now:
+                    if o.count() > 0 and orders[i]['queue'] > 0 and orders[i]['queue'] + 4 < now:
                         fries = []
                         if o.fries > 0:
                             fries = r.carton_full(img)
                         serve(i, o, fries, packed)
-                        if o.beggar:
+                        if o.beggar and o.count() == 0:
                             time.sleep(0.3)
                             for _ in range(8 + 8 * (5 - conf.customer_num)):
                                 rect = pos.R_ORDER[i]
                                 m.click(rect[0][0], rect[0][1] + 240)
                                 time.sleep(0.1)
-                        orders[i]['o'] = data.Order()
                         orders[i]['last_serve'] = time.time()
                         do_serve = True
                         break

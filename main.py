@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import copy
 import multiprocessing as mp
 import queue
 import threading
@@ -32,6 +33,7 @@ def order_to_str(o: data.Order):
 
 
 def refill():
+    # staff_upgrade==1 is not implemented
     m.click(*pos.P_STAFF)
 
 
@@ -154,6 +156,7 @@ def serve_swm(i: int, o: data.Order, swm: list = None):
                 operate.spin(0.02)
                 break
     o.swm = [x for x in o.swm if x is not None]
+    swm = [x for x in swm if x is not None]
 
 
 def serve(i: int, o: data.Order, fries: list = None, swm: list = None):
@@ -521,7 +524,7 @@ def main_loop():
                 old = []
                 if len(packed_record) == 5:
                     for s in packed_record[0]:
-                        flag = True
+                        flag = s is not None
                         for i in range(1, 5):
                             if s not in packed_record[i]:
                                 flag = False
@@ -546,7 +549,7 @@ def main_loop():
                     if len(swm_next) >= 2:
                         break
                 if len(swm_next) > 0:
-                    packed_record.append(packed)
+                    packed_record.append(copy.deepcopy(packed))
                     packed_record = packed_record[-5:]
 
             if len(swm_next) > 0 and t_make + 0.6 < now and r.amount_fries(img) > 0.1:

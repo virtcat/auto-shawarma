@@ -93,7 +93,7 @@ class Screen:
         for ix in range(0, test_x - stride_x, stride_x):
             for iy in range(200, test_y - stride_y, stride_y):
                 count = numpy.sum(img_test[iy:(iy + stride_y), ix:(ix + stride_x)])
-                if count > stride_x:
+                if count > stride_x / 2:
                     candidates.append((count, (ix, iy)))
         candidates.sort(key=lambda x: x[0], reverse=True)
 
@@ -102,12 +102,12 @@ class Screen:
         match1 = (0, 0)
         o_stride_x = max(40, int(stride_x / ratio_s))
         o_stride_y = max(40, int(stride_y / ratio_s))
-        for c, (ix, iy) in candidates[:4]:
+        for c, (ix, iy) in candidates[:10]:
             ox = int(ix / ratio_s)
             oy = int(iy / ratio_s)
             corner = pos.plus((ox, oy), (-o_stride_x, -o_stride_y))
             corner2 = pos.plus(corner, (2 * o_stride_x, 2 * o_stride_y))
-            if corner[0] <= 0 or corner[1] <= 0 or corner2[0] > img_x or corner2[1] > img_y:
+            if corner[0] < 0 or corner[1] < 0 or corner2[0] > img_x or corner2[1] > img_y:
                 continue
             area = img_slice(img, (corner, (2 * o_stride_x, 2 * o_stride_y)))
             # Test from 0.5x to 2x
@@ -119,6 +119,8 @@ class Screen:
                     score = res[0]
                     ratio_cand = ratio_test
                     match1 = pos.plus(corner, res[1])
+            if score > 0.96:
+                break
         if score < 0.9:
             print('Locate point 1 not detected')
             return False

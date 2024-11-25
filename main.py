@@ -84,7 +84,7 @@ def make_swm(s: data.Shawarma):
     roll_wait_time = max(0.20, st + make_time - time.time())
     m.move_to(*pos.P_FRIES, *pos.L_BREAD_DRAG[:2], roll_wait_time)
     m.drag(*pos.L_BREAD_DRAG, 0.2)
-    operate.spin(0.02)
+    operate.spin(0.05)
 
 
 def prepare_cola():

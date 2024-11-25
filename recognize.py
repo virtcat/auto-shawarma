@@ -84,9 +84,9 @@ class Screen:
         while img.shape[1] * ratio_s > 1960:
             ratio_s /= 2
         img_s = cv2.resize(img, (0, 0), fx=ratio_s, fy=ratio_s)
-        test_color = numpy.array([115, 115, 115], dtype=numpy.float32)
+        test_color = numpy.array([110, 110, 110], dtype=numpy.float32)
         img_test = numpy.sqrt(numpy.average((img_s - test_color) ** 2, axis=-1))
-        img_test = img_test < 2.0
+        img_test = img_test < 6.0
         test_y, test_x = img_test.shape[:2]
         candidates = []
         stride_x, stride_y = 32, 16
@@ -102,7 +102,7 @@ class Screen:
         match1 = (0, 0)
         o_stride_x = max(40, int(stride_x / ratio_s))
         o_stride_y = max(40, int(stride_y / ratio_s))
-        for c, (ix, iy) in candidates[:10]:
+        for c, (ix, iy) in candidates[:12]:
             ox = int(ix / ratio_s)
             oy = int(iy / ratio_s)
             corner = pos.plus((ox, oy), (-o_stride_x, -o_stride_y))
@@ -178,7 +178,7 @@ class Screen:
         pad = 10
         shot = self.sct.grab({
             "left": self.rect[0][0] + pad, "top": self.rect[0][1] + pad,
-            "width": self.rect[1][0] - pad * 2, "height": self.rect[1][0] - pad * 2 })
+            "width": self.rect[1][0] - pad * 2, "height": self.rect[1][1] - pad * 2 })
         img = numpy.array(shot)[:, :, :3]
         img = numpy.pad(img, [(pad, pad), (pad, pad), (0, 0)])
         if abs(self.ratio - 1.0) > 0.001:

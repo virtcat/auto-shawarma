@@ -331,13 +331,13 @@ class Recognizer:
 
 
     def fryer(self, img: MatLike):
-        area = img_slice(img, ((1670, 594), (20, 16)))
+        area = img_slice(img, pos.R_FRYER)
         mse = ((area - self.t_fryer_empty) ** 2).mean()
         return mse > 20
 
 
     def cola(self, img: MatLike):
-        area = img_slice(img, ((1378, 628), (178, 150)))
+        area = img_slice(img, pos.R_COLA)
         state1 = 0
         res1 = match_one(area, self.t_cola1)
         res1b = match_one(area, self.t_cola1_b)

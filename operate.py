@@ -57,9 +57,9 @@ class Mouse:
         self.c.position = self.to_screen(x1, y1)
         dx = int((x2 - x1) * self.ratio)
         dy = int((y2 - y1) * self.ratio)
-        ticks = int(t / 0.01)
+        ticks = int(t / 0.005)
         for i in range(ticks):
-            spin(0.01)
+            spin(0.005)
             self.c.move(int(dx / ticks * (i + 1)) - int(dx / ticks * i),
                         int(dy / ticks * (i + 1)) - int(dy / ticks * i))
 

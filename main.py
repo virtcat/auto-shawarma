@@ -50,32 +50,36 @@ def make_swm(s: data.Shawarma):
     make_time = 0.7
     if s is None or not s.no_molasses:
         make_time += 0.25
+        m.set_pos(*pos.P_MOLASSES)
+        operate.spin(0.02)
         if conf.molasess == 1:
             make_time += 0.25
-            m.set_pos(*pos.P_MOLASSES)
-            operate.spin(0.02)
             m.drag(*pos.P_MOLASSES, *pos.P_MOLASSES_TARGET, 0.25)
         if conf.molasess == 2:
-            m.move_to(*pos.P_MOLASSES, *pos.P_MOLASSES, 0.03)
             m.click(*pos.P_MOLASSES)
-    m.move_to(*pos.P_MEAT, *pos.P_MEAT, 0.02)
+            operate.spin(0.02)
+    m.set_pos(*pos.P_MEAT)
+    operate.spin(0.02)
     m.click(*pos.P_MEAT)
     for _ in range(1, conf.add_click):
         operate.spin(0.02)
         m.click(*pos.P_MEAT)
     if s is None or not s.no_cucumber:
+        operate.spin(0.01)
         m.move_to(*pos.P_MEAT, *pos.P_CUCUMBER, 0.02)
         m.click(*pos.P_CUCUMBER)
         for _ in range(1, conf.add_click):
             operate.spin(0.02)
             m.click(*pos.P_CUCUMBER)
     if s is None or not s.no_sauce:
+        operate.spin(0.01)
         m.move_to(*pos.P_CUCUMBER, *pos.P_SAUCE, 0.02)
         m.click(*pos.P_SAUCE)
         for _ in range(1, conf.add_click):
             operate.spin(0.02)
             m.click(*pos.P_SAUCE)
     if s is None or not s.no_fries:
+        operate.spin(0.01)
         m.move_to(*pos.P_SAUCE, *pos.P_FRIES, 0.02)
         m.click(*pos.P_FRIES)
         for _ in range(1, conf.add_click):
@@ -83,7 +87,7 @@ def make_swm(s: data.Shawarma):
             m.click(*pos.P_FRIES)
     roll_wait_time = max(0.20, st + make_time - time.time())
     m.move_to(*pos.P_FRIES, *pos.L_BREAD_DRAG[:2], roll_wait_time)
-    m.drag(*pos.L_BREAD_DRAG, 0.2)
+    m.drag(*pos.L_BREAD_DRAG, 0.25)
     operate.spin(0.05)
 
 

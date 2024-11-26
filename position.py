@@ -23,7 +23,7 @@ if conf.customer_num == 3:
     R_ORDER = [((700 + 372 * i, 190), (100, 360)) for i in range(3)]
 elif conf.customer_num == 4:
     R_ORDER = [((660 + 338 * i, 190), (100, 360)) for i in range(4)]
-R_ORDER_THIEF_REL = (-80, 200), (60, 40)
+R_ORDER_THIEF_REL = (-80, 200), (80, 40)
 P_ORDER_REL = -36, 300
 
 
@@ -49,6 +49,8 @@ R_GRILL = (1120 + 272, 770), (308, 180)
 R_CARTON = (1620, 744), (244, 66)
 R_KIBBEH = (1124, 618), (218, 108)
 R_JUICE = (228, 790), (180, 104)
+R_FRYER = (1670, 594), (20, 16)
+R_COLA = (1378, 628), (178, 150)
 
 
 P_STAFF = 144, 580

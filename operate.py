@@ -3,9 +3,14 @@
 import time
 from pynput import mouse
 
-import ctypes
-PROCESS_PER_MONITOR_DPI_AWARE = 2
-ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE)
+
+# Handle the display scale setting on Windows system.
+# Declare the process DPI-aware, otherwise the mouse position will be scaled by the system.
+import platform
+if platform.system() == 'Windows':
+    import ctypes
+    PROCESS_PER_MONITOR_DPI_AWARE = 2
+    ctypes.windll.shcore.SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE)
 
 
 def spin(t: float):

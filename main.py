@@ -25,6 +25,7 @@ def log(s: str):
 def swm_to_str(s: data.Shawarma):
     return f'swm({int(s.no_cucumber)},{int(s.no_fries)},{int(s.no_molasses)},{int(s.no_sauce)})'
 
+
 def order_to_str(o: data.Order):
     if o is None:
         return 'None'
@@ -417,6 +418,7 @@ def main_loop():
                             m.click(*pos.P_PACK)
                         time.sleep(0.05)
                     continue
+            # [TODO] Clean burned shawarma
 
             # Refill ingredients
             # 补充配料
@@ -546,8 +548,7 @@ def main_loop():
                             if s == data.Shawarma() or not any(s == x[1] for x in old):
                                 swm_add.append(s)
                     swm_next.extend(swm_add)
-                    log(f'>> Append order {i}, num {len(swm_add)}: ' \
-                        + ', '.join(swm_to_str(s) for s in swm_add))
+                    log(f'>> Append order {i}, num {len(swm_add)}: ' + ', '.join(swm_to_str(s) for s in swm_add))
 
                     orders[i]['queue'] = now
                     if len(swm_next) >= 2:

@@ -90,4 +90,3 @@ class Mouse:
 
     def release_left(self):
         self.c.release(mouse.Button.left)
-

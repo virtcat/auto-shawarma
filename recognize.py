@@ -4,7 +4,7 @@ import cv2
 import mss
 import numpy
 from cv2.typing import MatLike
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import config as conf
 import data
@@ -17,8 +17,7 @@ def match_one(target: MatLike, template: MatLike):
     return max_val, max_loc
 
 
-def match_all(target: MatLike, template: MatLike, threshold: float = 0.8
-        ) -> List[Tuple[float, Tuple[int, int]]]:
+def match_all(target: MatLike, template: MatLike, threshold: float = 0.8) -> List[Tuple[float, Tuple[int, int]]]:
     res = cv2.matchTemplate(target, template, cv2.TM_CCOEFF_NORMED)
     match_locations = numpy.where(res > threshold)
     locations = []
@@ -40,8 +39,7 @@ def match_all(target: MatLike, template: MatLike, threshold: float = 0.8
     return keep_locations
 
 
-def match_all_not_gray(target: MatLike, template: MatLike, threshold: float = 0.8
-        ) -> List[Tuple[float, Tuple[int, int]]]:
+def match_all_not_gray(target: MatLike, template: MatLike, threshold: float = 0.8) -> List[Tuple[float, Tuple[int, int]]]:
     res = match_all(target, template, threshold)
     if len(res) == 0:
         return res
@@ -112,7 +110,7 @@ class Screen:
             area = img_slice(img, (corner, (2 * o_stride_x, 2 * o_stride_y)))
             # Test from 0.5x to 2x
             for i in range(-4, 5):
-                ratio_test = (2 ** (1/4)) ** i
+                ratio_test = (2 ** (1 / 4)) ** i
                 t1_temp = cv2.resize(self.t1, (0, 0), fx=ratio_test, fy=ratio_test)
                 res = match_one(area, t1_temp)
                 if res[0] > score:
@@ -161,7 +159,7 @@ class Screen:
             width = int((1920 + 180) * ratio)
         height = int(1080 * ratio)
         if left < -8 or top < 8 or left + width > img_x + 8 or top + height > img_y + 8:
-            print('Window rect', (left, top), (width, height), 'exceed the screen',  (img_x, img_y))
+            print('Window rect', (left, top), (width, height), 'exceed the screen', (img_x, img_y))
             return False
         left += self.sct.monitors[0]["left"]
         top += self.sct.monitors[0]["top"]
@@ -178,7 +176,7 @@ class Screen:
         pad = 10
         shot = self.sct.grab({
             "left": self.rect[0][0] + pad, "top": self.rect[0][1] + pad,
-            "width": self.rect[1][0] - pad * 2, "height": self.rect[1][1] - pad * 2 })
+            "width": self.rect[1][0] - pad * 2, "height": self.rect[1][1] - pad * 2})
         img = numpy.array(shot)[:, :, :3]
         img = numpy.pad(img, [(pad, pad), (pad, pad), (0, 0)])
         if abs(self.ratio - 1.0) > 0.001:
@@ -194,7 +192,7 @@ class Screen:
         height = int(pos.R_CUSTOMER[1][1] * self.ratio)
         shot = self.sct.grab({
             "left": corner_xy[0], "top": corner_xy[1],
-            "width": width, "height": height })
+            "width": width, "height": height})
         img = numpy.array(shot)[:, :, :3]
         if abs(self.ratio - 1.0) > 0.001:
             img = cv2.resize(img, (0, 0), fx=1 / self.ratio, fy=1 / self.ratio)
@@ -276,12 +274,10 @@ class Recognizer:
 
         swm_rect = []
         for res in match_all_not_gray(area, self.t_order_swm, 0.8):
-            swm_rect.append((
-                    pos.plus(rect[0], res[1], (24, 0)), (80, 44)))
+            swm_rect.append((pos.plus(rect[0], res[1], (24, 0)), (80, 44)))
         if conf.optional_ingredient:
             for res in match_all_not_gray(area, self.t_order_swm_h, 0.8):
-                swm_rect.append((
-                    pos.plus(rect[0], res[1], (56, -14)), (80, 44)))
+                swm_rect.append((pos.plus(rect[0], res[1], (56, -14)), (80, 44)))
         swm_rect.sort(key=lambda x: x[0][0] + x[0][1])
         for r in swm_rect:
             swm = data.Shawarma()
